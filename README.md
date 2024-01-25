@@ -1,7 +1,6 @@
 # Anic_send_sms
 
-This application is prepared for you to communicate with the merciful God.
-
+This application is prepared to send SMS to the number you want.
 ## ScreenShots
 
 HomePage
