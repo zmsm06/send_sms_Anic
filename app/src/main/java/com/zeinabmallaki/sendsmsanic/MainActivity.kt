@@ -1,9 +1,5 @@
 package com.zeinabmallaki.sendsmsanic
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.telephony.SmsManager
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.zeinabmallaki.sendsmsanic.databinding.ActivityMainBinding
@@ -11,11 +7,20 @@ import com.zeinabmallaki.sendsmsanic.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var permissionManager: PermissionManager
+    private lateinit var toastManager: ToastManager
+    private lateinit var smsManager: SMSManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+
+        permissionManager = PermissionManager(this)
+        toastManager = ToastManager(this)
+        smsManager = SMSManager()
+
 
         binding.sendButton.setOnClickListener { sendMessage() }
     }
@@ -24,23 +29,18 @@ class MainActivity : AppCompatActivity() {
         val mobileNumber = binding.phoneNumber.text.toString()
         val message = binding.message.text.toString()
 
-        if (checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
-            sendSMS(mobileNumber, message)
+        if (permissionManager.hasSendSmsPermission()) {
+            val isSent = smsManager.sendSMS(mobileNumber, message)
+            if (isSent) {
+                toastManager.showToast("SMS sent successfully.")
+            } else {
+                toastManager.showToast("Failed to send SMS.")
+            }
         } else {
-            requestPermissions(arrayOf(Manifest.permission.SEND_SMS), PERMISSION_REQUEST_SEND_SMS)
+            permissionManager.requestSendSmsPermission(PERMISSION_REQUEST_SEND_SMS)
         }
     }
 
-    private fun sendSMS(mobileNumber: String, message: String) {
-        try {
-            val smsManager: SmsManager = SmsManager.getDefault()
-            smsManager.sendTextMessage(mobileNumber, null, message, null, null)
-            Toast.makeText(this, "SMS sent successfully.", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Failed to send SMS.", Toast.LENGTH_SHORT).show()
-            e.printStackTrace()
-        }
-    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -49,15 +49,21 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_REQUEST_SEND_SMS) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 val mobileNumber = binding.phoneNumber.text.toString()
                 val message = binding.message.text.toString()
-                sendSMS(mobileNumber, message)
+                val isSent = smsManager.sendSMS(mobileNumber, message)
+                if (isSent) {
+                    toastManager.showToast("SMS sent successfully.")
+                } else {
+                    toastManager.showToast("Failed to send SMS.")
+                }
             } else {
-                Toast.makeText(this, "Permission denied to send SMS.", Toast.LENGTH_SHORT).show()
+                toastManager.showToast("Permission denied to send SMS.")
             }
         }
     }
+
 
     companion object {
         private const val PERMISSION_REQUEST_SEND_SMS = 123
